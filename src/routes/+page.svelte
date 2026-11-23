@@ -4,10 +4,12 @@
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { Input } from '#lib/components/ui/input/index.js';
 	import { listings } from '#lib/data/listings.js';
+	import { onMount } from 'svelte';
 	import {
 		Bath,
 		Bolt,
 		ChevronDown,
+		Clock,
 		Droplets,
 		Heart,
 		MapPin,
@@ -30,6 +32,55 @@
 	let electricity = $state(false);
 	let saved = $state<number[]>([3, 12, 28]);
 	let visibleCount = $state(24);
+	let routeDetails = $state<Record<string, { distance: string; duration: string }>>({});
+
+	const upDiliman = { lat: 14.6549, lng: 121.0649 };
+	const locationCoordinates: Record<string, { lat: number; lng: number }> = {
+		'UP Campus, Diliman': { lat: 14.6535, lng: 121.0682 },
+		'Katipunan Avenue': { lat: 14.6507, lng: 121.0735 },
+		'UP Village': { lat: 14.6485, lng: 121.0652 },
+		'Barangay Krus Na Ligas': { lat: 14.6448, lng: 121.0661 },
+		'U.P. Teachers Village': { lat: 14.6428, lng: 121.0686 },
+		'Magsaysay Avenue': { lat: 14.6571, lng: 121.0669 },
+		'Roces Avenue': { lat: 14.6421, lng: 121.0391 },
+		'Commonwealth Avenue': { lat: 14.6951, lng: 121.0759 },
+		'Philcoa': { lat: 14.6549, lng: 121.0488 },
+		'Sikatuna Village': { lat: 14.6388, lng: 121.0598 }
+	};
+
+	onMount(() => {
+		const uniqueLocations = [...new Set(listings.map((listing) => listing.location))];
+
+		void Promise.all(uniqueLocations.map(async (location) => {
+			const origin = locationCoordinates[location];
+			if (!origin) return;
+
+			try {
+				const response = await fetch(
+					`https://router.project-osrm.org/route/v1/driving/${origin.lng},${origin.lat};${upDiliman.lng},${upDiliman.lat}?overview=false`
+				);
+				if (!response.ok) return;
+
+				const data = await response.json();
+				const route = data.routes?.[0];
+				if (!route) return;
+
+				const distanceKm = route.distance / 1000;
+				const durationMinutes = Math.ceil(route.duration / 60);
+				routeDetails = {
+					...routeDetails,
+					[location]: {
+						distance: distanceKm < 10 ? `${distanceKm.toFixed(1)} km` : `${Math.round(distanceKm)} km`,
+						duration: durationMinutes < 60
+							? `${durationMinutes} min`
+							: `${Math.floor(durationMinutes / 60)} hr ${durationMinutes % 60} min`
+					}
+				};
+			} catch {
+				// Route details remain unavailable if the public routing service is unreachable.
+			}
+		}));
+	});
 
 	let filtered = $derived(listings.filter((listing) => {
 		const searchMatch = `${listing.name} ${listing.location}`.toLowerCase().includes(search.toLowerCase());
@@ -193,6 +244,17 @@
 								<p class="mt-1 flex items-center gap-1 text-xs text-[#718078]"><MapPin class="size-3" /> {listing.location}</p>
 							</div>
 							<div class="flex shrink-0 items-center gap-1 text-xs font-bold"><Star class="size-3 fill-[#f5b94c] text-[#f5b94c]" /> {listing.rating}</div>
+						</div>
+						<div class="flex items-center gap-3 rounded-lg bg-[#f1f5f1] px-3 py-2 text-xs text-[#526158]">
+							<div class="flex items-center gap-1.5">
+								<MapPin class="size-3.5 text-[#176b4d]" />
+								<span>{routeDetails[listing.location]?.distance ?? 'Calculating'} from UP Diliman</span>
+							</div>
+							<span class="h-4 w-px bg-[#d7dfd8]"></span>
+							<div class="flex items-center gap-1.5">
+								<Clock class="size-3.5 text-[#176b4d]" />
+								<span>{routeDetails[listing.location]?.duration ?? '...'}</span>
+							</div>
 						</div>
 						<div class="flex items-baseline gap-1 border-y border-[#edf0ec] py-3">
 							<span class="text-xl font-black text-[#176b4d]">₱{listing.rent.toLocaleString()}</span>
