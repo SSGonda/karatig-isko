@@ -5,16 +5,20 @@ export type Listing = {
 	area: string;
 	rent: number;
 	perRoom: number;
+	gender: 'Male' | 'Female' | 'Any';
 	privateCR: boolean;
 	wifi: boolean;
 	water: boolean;
 	electricity: boolean;
 	image: string;
+	images: string[];
 	rating: number;
 	reviews: number;
 	verified: boolean;
 	furnished: boolean;
 	available: string;
+	minimumStayMonths: number;
+	maximumStayMonths: number;
 	seller: string;
 	sellerInitials: string;
 	description: string;
@@ -67,8 +71,19 @@ export const listings: Listing[] = Array.from({ length: 100 }, (_, i) => {
 	const rentBase = [5200, 6500, 8200, 10500, 13500][quality];
 	const rent = rentBase + ((i * 250) % 3000);
 	const location = locations[i % locations.length];
-	const sellerNames = ['Maria Santos', 'Jun Ramirez', 'Ana Dela Cruz', 'Carlo Mendoza', 'Jessa Lim'];
+	const sellerNames = [
+		'Maria Santos',
+		'Jun Ramirez',
+		'Ana Dela Cruz',
+		'Carlo Mendoza',
+		'Jessa Lim'
+	];
 	const seller = sellerNames[i % sellerNames.length];
+	const baseImageIndex = i % images.length;
+	const listingImages = Array.from({ length: 4 }, (_, imageIndex) => {
+		const offsetImage = images[(baseImageIndex + imageIndex) % images.length];
+		return offsetImage;
+	});
 
 	return {
 		id: i + 1,
@@ -77,18 +92,25 @@ export const listings: Listing[] = Array.from({ length: 100 }, (_, i) => {
 		area: `${[6, 8, 10, 14, 18][quality]} sqm`,
 		rent,
 		perRoom: i % 7 === 0 ? 1 : i % 3 === 0 ? 3 : i % 2 === 0 ? 2 : 4,
+		gender: i % 3 === 0 ? 'Male' : i % 3 === 1 ? 'Female' : 'Any',
 		privateCR: i % 4 !== 1,
 		wifi: i % 5 !== 2,
 		water: i % 11 !== 4,
 		electricity: i % 13 !== 6,
 		image: images[i % images.length],
+		images: listingImages,
 		rating: Number((4.1 + ((i * 7) % 9) / 10).toFixed(1)),
 		reviews: 8 + ((i * 13) % 74),
 		verified: i % 6 !== 0,
 		furnished: i % 3 !== 1,
 		available: i % 8 === 0 ? 'Available now' : `${1 + (i % 4)} weeks`,
+		minimumStayMonths: i % 3 === 0 ? 1 : i % 3 === 1 ? 3 : 6,
+		maximumStayMonths: i % 4 === 0 ? 6 : i % 4 === 1 ? 12 : i % 4 === 2 ? 18 : 24,
 		seller,
-		sellerInitials: seller.split(' ').map((part) => part[0]).join(''),
+		sellerInitials: seller
+			.split(' ')
+			.map((part) => part[0])
+			.join(''),
 		description: `Well-kept ${i % 3 === 0 ? 'bedroom' : 'room'} near ${location}, convenient for UP Diliman students.`
 	};
 });
